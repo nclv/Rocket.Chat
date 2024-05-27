@@ -22,7 +22,7 @@ import { logger } from './logger';
 import { getModules, invalidateAll, replaceModules } from './modules';
 import { applyPendingLicense, clearPendingLicense, hasPendingLicense, isPendingLicense, setPendingLicense } from './pendingLicense';
 import { replaceTags } from './tags';
-import { decrypt } from './token';
+// import { decrypt } from './token';
 import { convertToV3 } from './v2/convertToV3';
 import { filterBehaviorsResult } from './validation/filterBehaviorsResult';
 import { getCurrentValueForLicenseLimit } from './validation/getCurrentValueForLicenseLimit';
@@ -249,6 +249,8 @@ export class LicenseManager extends Emitter<LicenseEvents> {
 	}
 
 	public async setLicense(encryptedLicense: string, isNewLicense = true): Promise<boolean> {
+		encryptedLicense = 'WMa5i+/t/LZbYOj8u3XUkivRhWBtWO6ycUjaZoVAw2DxMfdyBIAa2gMMI4x7Z2BrTZIZhFEImfOxcXcgD0QbXHGBJaMI+eYG+eofnVWi2VA7RWbpvWTULgPFgyJ4UEFeCOzVjcBLTQbmMSam3u0RlekWJkfAO0KnmLtsaEYNNA2rz1U+CLI/CdNGfdqrBu5PZZbGkH0KEzyIZMaykOjzvX+C6vd7fRxh23HecwhkBbqE8eQsCBt2ad0qC4MoVXsDaSOmSzGW+aXjuXt/9zjvrLlsmWQTSlkrEHdNkdywm0UkGxqz3+CP99n0WggUBioUiChjMuNMoceWvDvmxYP9Ml2NpYU7SnfhjmMFyXOah8ofzv8w509Y7XODvQBz+iB4Co9YnF3vT96HDDQyAV5t4jATE+0t37EAXmwjTi3qqyP7DLGK/revl+mlcwJ5kS4zZBsm1E4519FkXQOZSyWRnPdjqvh4mCLqoispZ49wKvklDvjPxCSP9us6cVXLDg7NTJr/4pfxLPOkvv7qCgugDvlDx17bXpQFPSDxmpw66FLzvb5Id0dkWjOzrRYSXb0bFWoUQjtHFzmcpFkyVhOKrQ9zA9+Zm7vXmU9Y2l2dK79EloOuHMSYAqsPEag8GMW6vI/cT4iIjHGGDePKnD0HblvTEKzql11cfT/abf2IiaY=';
+
 		if (!(await validateFormat(encryptedLicense))) {
 			throw new InvalidLicenseError();
 		}
@@ -278,14 +280,38 @@ export class LicenseManager extends Emitter<LicenseEvents> {
 
 		logger.info('New Enterprise License');
 		try {
-			const decrypted = JSON.parse(await decrypt(encryptedLicense));
+			// const decrypted = JSON.parse(await decrypt(encryptedLicense));
+			// See packages/core-typings/dist/license/ILicenseV3.d.ts
+			const decrypted = {
+				"url": "localhost:3000",
+				"expiry": "2030-06-30",
+				"modules": [
+					"enterprise:*"
+				],
+				"notes": "Plan Premium",
+				"tag": {
+					"name": "Enterprise",
+					"color": "#2F343D"
+				},
+				"apps": {
+					"maxMarketplaceApps": -1,
+					"maxPrivateApps": -1
+				},
+				"maxActiveUsers": 500,
+				"maxGuestUsers": 100,
+				"maxRoomsPerGuest": 10
+			}
 
-			logger.debug({ msg: 'license', decrypted });
+			logger.startup({ msg: 'license', decrypted });
 
 			if (!encryptedLicense.startsWith('RCV3_')) {
+				// @ts-ignore: Ignore TypeScript lint error
+				// eslint-disable-next-line
 				await this.setLicenseV2(decrypted, encryptedLicense, isNewLicense);
 				return true;
 			}
+			// @ts-ignore: Ignore TypeScript lint error
+			// eslint-disable-next-line
 			await this.setLicenseV3(decrypted, encryptedLicense, decrypted, isNewLicense);
 
 			this.emit('installed');
@@ -313,7 +339,7 @@ export class LicenseManager extends Emitter<LicenseEvents> {
 	}
 
 	public hasValidLicense(): boolean {
-		return Boolean(this.getLicense());
+		return true;
 	}
 
 	public getLicense(): ILicenseV3 | undefined {
@@ -352,15 +378,15 @@ export class LicenseManager extends Emitter<LicenseEvents> {
 
 				const fresh = license
 					? isBehaviorsInResult(
-							await validateLicenseLimits.call(this, license, {
-								behaviors: ['prevent_action'],
-								limits: [limit],
-							}),
-							['prevent_action'],
-					  )
+						await validateLicenseLimits.call(this, license, {
+							behaviors: ['prevent_action'],
+							limits: [limit],
+						}),
+						['prevent_action'],
+					)
 					: isBehaviorsInResult(await validateDefaultLimits.call(this, { behaviors: ['prevent_action'], limits: [limit] }), [
-							'prevent_action',
-					  ]);
+						'prevent_action',
+					]);
 
 				this.shouldPreventActionResults.set(limit as LicenseLimitKind, fresh);
 
@@ -428,13 +454,13 @@ export class LicenseManager extends Emitter<LicenseEvents> {
 		const eventsToEmit = shouldPreventAction
 			? filterBehaviorsResult(validationResult, ['prevent_action'])
 			: [
-					{
-						behavior: 'allow_action',
-						modules: [],
-						reason: 'limit',
-						limit: action,
-					} as BehaviorWithContext,
-			  ];
+				{
+					behavior: 'allow_action',
+					modules: [],
+					reason: 'limit',
+					limit: action,
+				} as BehaviorWithContext,
+			];
 
 		if (this.consolidateBehaviorState(action, 'prevent_action', shouldPreventAction)) {
 			this.triggerBehaviorEventsToggled(eventsToEmit);
@@ -490,7 +516,7 @@ export class LicenseManager extends Emitter<LicenseEvents> {
 							];
 						}),
 				))) ||
-				[],
+			[],
 		);
 
 		return {

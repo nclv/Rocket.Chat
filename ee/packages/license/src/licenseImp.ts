@@ -67,6 +67,7 @@ export class LicenseImp extends LicenseManager implements License {
 			logger.startup({
 				msg: 'License installed',
 				version: this.getLicense()?.version,
+				license: this.getLicense(),
 				hash: this._lockedLicense?.slice(-8),
 			});
 		});
